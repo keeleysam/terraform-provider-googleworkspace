@@ -1,4 +1,4 @@
-## 1.2.30 (February 19, 2026)
+## 1.2.31 (February 19, 2026)
 
 BUG FIX
 
