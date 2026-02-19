@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(wc:*)",
-      "Bash(gh api:*)"
+      "Bash(gh api:*)",
+      "Bash(gh auth:*)",
+      "Bash(gh run view:*)"
     ]
   }
 }
