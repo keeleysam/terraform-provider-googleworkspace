@@ -217,43 +217,13 @@ func resourceChromePolicyGroupPriorityOrderingRead(ctx context.Context, d *schem
 }
 
 func resourceChromePolicyGroupPriorityOrderingDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*apiClient)
-
-	chromePolicyService, diags := client.NewChromePolicyService()
-	if diags.HasError() {
-		return diags
-	}
-
-	chromePolicyGroupsService, diags := GetChromePolicyGroupsService(chromePolicyService)
-	if diags.HasError() {
-		return diags
-	}
-
-	policySchema := d.Get("policy_schema").(string)
-	policyNamespace := d.Get("policy_namespace").(string)
-	policyTargetKey := expandPolicyTargetKey(d.Get("policy_target_key").([]interface{}))
-
-	log.Printf("[DEBUG] Deleting Chrome Policy Group Priority Ordering: %s", d.Id())
-
-	// To delete, we set an empty group list
-	req := &chromepolicy.GoogleChromePolicyVersionsV1UpdateGroupPriorityOrderingRequest{
-		PolicyTargetKey: policyTargetKey,
-		PolicyNamespace: policyNamespace,
-		PolicySchema:    policySchema,
-		GroupIds:        []string{},
-	}
-
-	err := retryTimeDuration(ctx, time.Minute, func() error {
-		_, retryErr := chromePolicyGroupsService.UpdateGroupPriorityOrdering(fmt.Sprintf("customers/%s", client.Customer), req).Do()
-		return retryErr
-	})
-
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	log.Printf("[DEBUG] Finished deleting Chrome Policy Group Priority Ordering: %s", d.Id())
-
+	// The Chrome Policy API does not support deleting a group priority ordering
+	// (sending an empty group list returns "Request must have at least one Group ID").
+	// Group priority orderings are inherent to the policy — they exist as long as
+	// multiple groups have the same policy applied. We simply remove the resource
+	// from Terraform state and leave the ordering as-is in Google Admin.
+	log.Printf("[DEBUG] Removing Chrome Policy Group Priority Ordering from state: %s (API does not support deletion)", d.Id())
+	d.SetId("")
 	return nil
 }
 
