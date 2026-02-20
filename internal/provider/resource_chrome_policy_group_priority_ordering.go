@@ -204,6 +204,14 @@ func resourceChromePolicyGroupPriorityOrderingRead(ctx context.Context, d *schem
 	})
 
 	if err != nil {
+		// The API returns 400 "not configured on any Groups" when the policy
+		// has no group assignments (e.g., groups were removed or policy was
+		// deleted outside Terraform). Treat this as "resource no longer exists".
+		if isApiErrorWithCode(err, 400) {
+			log.Printf("[WARN] Removing Chrome Policy Group Priority Ordering %s from state: %v", d.Id(), err)
+			d.SetId("")
+			return nil
+		}
 		return handleNotFoundError(err, d, fmt.Sprintf("Chrome Policy Group Priority Ordering %s", d.Id()))
 	}
 
