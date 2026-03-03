@@ -385,25 +385,10 @@ func (sc *schemaCache) get(ctx context.Context, schemaName string) (*chromepolic
 // Flatten: convert resolved policies to Terraform state
 // ---------------------------------------------------------------------------
 
-func flattenResolvedPolicies(
-	ctx context.Context,
-	entries []resolvedPolicyEntry,
-	sc *schemaCache,
-) ([]map[string]interface{}, diag.Diagnostics) {
+func flattenResolvedPolicies(entries []resolvedPolicyEntry) ([]map[string]interface{}, diag.Diagnostics) {
 	var result []map[string]interface{}
 
 	for _, entry := range entries {
-		schemaDef, err := sc.get(ctx, entry.Value.PolicySchema)
-		if err != nil {
-			return nil, diag.FromErr(err)
-		}
-
-		if schemaDef == nil || schemaDef.Definition == nil || schemaDef.Definition.MessageType == nil {
-			return nil, diag.Errorf("schema definition (%s) is empty or undefined", entry.Value.PolicySchema)
-		}
-
-		fieldMap := buildSchemaFieldMap(schemaDef)
-
 		var rawValues map[string]interface{}
 		if err := json.Unmarshal(entry.Value.Value, &rawValues); err != nil {
 			return nil, diag.FromErr(err)
@@ -411,17 +396,7 @@ func flattenResolvedPolicies(
 
 		schemaValues := make(map[string]interface{}, len(rawValues))
 		for k, v := range rawValues {
-			field, ok := fieldMap[k]
-			if !ok {
-				continue
-			}
-
-			converted, err := convertPolicyFieldValueType(field.Type, v)
-			if err != nil {
-				return nil, diag.FromErr(err)
-			}
-
-			jsonVal, err := json.Marshal(converted)
+			jsonVal, err := json.Marshal(v)
 			if err != nil {
 				return nil, diag.FromErr(err)
 			}
@@ -429,9 +404,11 @@ func flattenResolvedPolicies(
 		}
 
 		flat := map[string]interface{}{
-			"schema_name":          entry.Value.PolicySchema,
-			"schema_values":        schemaValues,
-			"additional_target_keys": flattenAdditionalTargetKeys(entry.Identity.AdditionalTargetKeys),
+			"schema_name":   entry.Value.PolicySchema,
+			"schema_values": schemaValues,
+		}
+		if len(entry.Identity.AdditionalTargetKeys) > 0 {
+			flat["additional_target_keys"] = flattenAdditionalTargetKeys(entry.Identity.AdditionalTargetKeys)
 		}
 		result = append(result, flat)
 	}
@@ -642,19 +619,12 @@ func resourceChromePolicySetRead(ctx context.Context, d *schema.ResourceData, me
 		return diags
 	}
 
-	schemasService, diags := GetChromePolicySchemasService(chromePolicyService)
-	if diags.HasError() {
-		return diags
-	}
-
 	entries, diags := resolveDirectlySetPolicies(ctx, policiesService, client.Customer, filter, targetResource)
 	if diags.HasError() {
 		return diags
 	}
 
-	sc := newSchemaCache(schemasService, client.Customer)
-
-	flatPolicies, diags := flattenResolvedPolicies(ctx, entries, sc)
+	flatPolicies, diags := flattenResolvedPolicies(entries)
 	if diags.HasError() {
 		return diags
 	}
