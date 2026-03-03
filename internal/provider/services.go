@@ -62,6 +62,23 @@ func GetChromePolicySchemasService(chromePolicyService *chromepolicy.Service) (*
 	return customersService.PolicySchemas, diags
 }
 
+func GetChromeMediaService(chromePolicyService *chromepolicy.Service) (*chromepolicy.MediaService, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	log.Printf("[INFO] Instantiating Google Admin Chrome Media service")
+	mediaService := chromePolicyService.Media
+	if mediaService == nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Chrome Media Service could not be created.",
+		})
+
+		return nil, diags
+	}
+
+	return mediaService, diags
+}
+
 func GetDomainAliasesService(directoryService *directory.Service) (*directory.DomainAliasesService, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
