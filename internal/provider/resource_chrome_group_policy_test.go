@@ -369,6 +369,143 @@ resource "googleworkspace_chrome_group_policy" "test" {
 `, groupName, groupName, enabled, policyMode)
 }
 
+// TestAccResourceChromeGroupPolicy_groupIDChange verifies create-before-delete ordering
+// when group_id is changed: the policy must exist on the new group before being removed
+// from the old group, so users experience no gap in enforcement.
+func TestAccResourceChromeGroupPolicy_groupIDChange(t *testing.T) {
+	t.Parallel()
+
+	groupNameA := fmt.Sprintf("tf-test-group-a-%s", acctest.RandString(6))
+	groupNameB := fmt.Sprintf("tf-test-group-b-%s", acctest.RandString(6))
+
+	// Verify the policy was deleted from group A after the group_id change.
+	checkRemovedFromGroupA := func(s *terraform.State) error {
+		client, err := googleworkspaceTestClient()
+		if err != nil {
+			return err
+		}
+
+		rs, ok := s.RootModule().Resources["googleworkspace_group.test_a"]
+		if !ok {
+			return fmt.Errorf("can't find resource: googleworkspace_group.test_a")
+		}
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("group A ID not set")
+		}
+
+		chromePolicyService, diags := client.NewChromePolicyService()
+		if diags.HasError() {
+			return errors.New(diags[0].Summary)
+		}
+		chromePoliciesService, diags := GetChromePoliciesService(chromePolicyService)
+		if diags.HasError() {
+			return errors.New(diags[0].Summary)
+		}
+
+		groupID := strings.TrimPrefix(rs.Primary.ID, "id:")
+		policyTargetKey := &chromepolicy.GoogleChromePolicyVersionsV1PolicyTargetKey{
+			TargetResource: "groups/" + groupID,
+		}
+
+		resp, err := chromePoliciesService.Resolve(
+			fmt.Sprintf("customers/%s", client.Customer),
+			&chromepolicy.GoogleChromePolicyVersionsV1ResolveRequest{
+				PolicySchemaFilter: "chrome.users.MaxConnectionsPerProxy",
+				PolicyTargetKey:    policyTargetKey,
+			},
+		).Do()
+		if err != nil {
+			return err
+		}
+
+		// The policy must not be explicitly set on group A anymore.
+		for _, rp := range resp.ResolvedPolicies {
+			if rp.SourceKey != nil && rp.SourceKey.TargetResource == "groups/"+groupID {
+				return fmt.Errorf("policy still explicitly set on group A after group_id change")
+			}
+		}
+		return nil
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: providerFactories,
+		Steps: []resource.TestStep{
+			{
+				// Step 1: assign policy to group A.
+				Config: testAccResourceChromeGroupPolicy_groupIDChangeStep1(groupNameA, groupNameB, 7),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("googleworkspace_chrome_group_policy.test", "policies.#", "1"),
+					resource.TestCheckResourceAttr("googleworkspace_chrome_group_policy.test", "policies.0.schema_name", "chrome.users.MaxConnectionsPerProxy"),
+					resource.TestCheckResourceAttr("googleworkspace_chrome_group_policy.test", "policies.0.schema_values.maxConnectionsPerProxy", "7"),
+				),
+			},
+			{
+				// Step 2: move the same policy to group B; verify it exists on B and is gone from A.
+				Config: testAccResourceChromeGroupPolicy_groupIDChangeStep2(groupNameA, groupNameB, 7),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("googleworkspace_chrome_group_policy.test", "policies.#", "1"),
+					resource.TestCheckResourceAttr("googleworkspace_chrome_group_policy.test", "policies.0.schema_name", "chrome.users.MaxConnectionsPerProxy"),
+					resource.TestCheckResourceAttr("googleworkspace_chrome_group_policy.test", "policies.0.schema_values.maxConnectionsPerProxy", "7"),
+					checkRemovedFromGroupA,
+				),
+			},
+		},
+	})
+}
+
+func testAccResourceChromeGroupPolicy_groupIDChangeStep1(groupNameA, groupNameB string, conns int) string {
+	return fmt.Sprintf(`
+resource "googleworkspace_group" "test_a" {
+  email       = "%s@example.com"
+  name        = "%s"
+  description = "Test group A"
+}
+
+resource "googleworkspace_group" "test_b" {
+  email       = "%s@example.com"
+  name        = "%s"
+  description = "Test group B"
+}
+
+resource "googleworkspace_chrome_group_policy" "test" {
+  group_id = googleworkspace_group.test_a.id
+  policies {
+    schema_name = "chrome.users.MaxConnectionsPerProxy"
+    schema_values = {
+      maxConnectionsPerProxy = jsonencode(%d)
+    }
+  }
+}
+`, groupNameA, groupNameA, groupNameB, groupNameB, conns)
+}
+
+func testAccResourceChromeGroupPolicy_groupIDChangeStep2(groupNameA, groupNameB string, conns int) string {
+	return fmt.Sprintf(`
+resource "googleworkspace_group" "test_a" {
+  email       = "%s@example.com"
+  name        = "%s"
+  description = "Test group A"
+}
+
+resource "googleworkspace_group" "test_b" {
+  email       = "%s@example.com"
+  name        = "%s"
+  description = "Test group B"
+}
+
+resource "googleworkspace_chrome_group_policy" "test" {
+  group_id = googleworkspace_group.test_b.id
+  policies {
+    schema_name = "chrome.users.MaxConnectionsPerProxy"
+    schema_values = {
+      maxConnectionsPerProxy = jsonencode(%d)
+    }
+  }
+}
+`, groupNameA, groupNameA, groupNameB, groupNameB, conns)
+}
+
 // Test batching scenario: No additional_target_keys with multiple policies
 // Expected: Individual API call per policy
 func TestAccResourceChromeGroupPolicy_batchingNoPolicyKeys(t *testing.T) {

@@ -1,3 +1,9 @@
+## 1.3.5 (March 03, 2026)
+
+FEATURES
+
+* Create before delete logic
+
 ## 1.3.4 (February 19, 2026)
 
 BUG FIX
