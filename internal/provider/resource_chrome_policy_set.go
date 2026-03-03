@@ -187,7 +187,16 @@ func chromePolicySetCustomizeDiff(ctx context.Context, d *schema.ResourceDiff, m
 	}
 
 	filter := d.Get("policy_schema_filter").(string)
-	policies := d.Get("policy").(*schema.Set).List()
+	rawPolicies := d.Get("policy").(*schema.Set).List()
+
+	// TypeSet diff computation can produce phantom entries with zero-value
+	// fields; filter them out before validation.
+	var policies []interface{}
+	for _, p := range rawPolicies {
+		if p.(map[string]interface{})["schema_name"].(string) != "" {
+			policies = append(policies, p)
+		}
+	}
 
 	if filter == "" {
 		if len(policies) == 0 {

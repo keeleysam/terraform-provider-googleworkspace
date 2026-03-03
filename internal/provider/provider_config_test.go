@@ -96,6 +96,45 @@ func TestConfigLoadAndValidate_credsNoImpersonation(t *testing.T) {
 	}
 }
 
+func TestConfigBillingProject(t *testing.T) {
+	config := &apiClient{
+		Credentials:           testFakeCredentialsPath,
+		BillingProject:        "my-billing-project",
+		ImpersonatedUserEmail: "my-fake-email@example.com",
+	}
+
+	diags := config.loadAndValidate(context.Background())
+	err := checkDiags(diags)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	if config.BillingProject != "my-billing-project" {
+		t.Fatalf("expected billing project to be %q, got %q", "my-billing-project", config.BillingProject)
+	}
+
+	if config.client == nil {
+		t.Fatal("expected HTTP client to be initialized")
+	}
+}
+
+func TestConfigBillingProject_empty(t *testing.T) {
+	config := &apiClient{
+		Credentials:           testFakeCredentialsPath,
+		ImpersonatedUserEmail: "my-fake-email@example.com",
+	}
+
+	diags := config.loadAndValidate(context.Background())
+	err := checkDiags(diags)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	if config.client == nil {
+		t.Fatal("expected HTTP client to be initialized")
+	}
+}
+
 func TestConfigOauthScopes_custom(t *testing.T) {
 	config := &apiClient{
 		Credentials:           testFakeCredentialsPath,

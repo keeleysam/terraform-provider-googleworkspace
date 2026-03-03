@@ -49,18 +49,30 @@ func New(version string) func() *schema.Provider {
 	return func() *schema.Provider {
 		p := &schema.Provider{
 			Schema: map[string]*schema.Schema{
-				"access_token": {
-					Description: "A temporary [OAuth 2.0 access token] obtained from " +
-						"the Google Authorization server, i.e. the `Authorization: Bearer` token used to " +
-						"authenticate HTTP requests to Google Admin SDK APIs. This is an alternative to `credentials`, " +
-						"and ignores the `oauth_scopes` field. If both are specified, `access_token` will be " +
-						"used over the `credentials` field.",
-					Type: schema.TypeString,
-					DefaultFunc: schema.MultiEnvDefaultFunc([]string{
-						"GOOGLE_OAUTH_ACCESS_TOKEN",
-					}, nil),
-					Optional: true,
-				},
+			"access_token": {
+				Description: "A temporary [OAuth 2.0 access token] obtained from " +
+					"the Google Authorization server, i.e. the `Authorization: Bearer` token used to " +
+					"authenticate HTTP requests to Google Admin SDK APIs. This is an alternative to `credentials`, " +
+					"and ignores the `oauth_scopes` field. If both are specified, `access_token` will be " +
+					"used over the `credentials` field.",
+				Type: schema.TypeString,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"GOOGLE_OAUTH_ACCESS_TOKEN",
+				}, nil),
+				Optional: true,
+			},
+
+			"billing_project": {
+				Description: "A Google Cloud project to use for quota and billing when making " +
+					"Google Workspace API requests. If not set, the project associated with the " +
+					"credentials or application default credentials will be used for billing. " +
+					"Sets the `X-Goog-User-Project` header on requests.",
+				Type:     schema.TypeString,
+				Optional: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"GOOGLE_BILLING_PROJECT",
+				}, nil),
+			},
 
 				"credentials": {
 					Description: "Either the path to or the contents of a service account key file in JSON format " +
@@ -161,6 +173,11 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 		// Get access token
 		if v, ok := d.GetOk("access_token"); ok {
 			config.AccessToken = v.(string)
+		}
+
+		// Get billing project
+		if v, ok := d.GetOk("billing_project"); ok {
+			config.BillingProject = v.(string)
 		}
 
 		// Get credentials
