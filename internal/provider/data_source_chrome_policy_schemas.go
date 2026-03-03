@@ -189,8 +189,8 @@ func dataSourceChromePolicySchemasRead(ctx context.Context, d *schema.ResourceDa
 		listCall = listCall.Filter(filter)
 	}
 
-	var result []*chromepolicy.GoogleChromePolicyV1PolicySchema
-	err := listCall.Pages(ctx, func(resp *chromepolicy.GoogleChromePolicyV1ListPolicySchemasResponse) error {
+	var result []*chromepolicy.GoogleChromePolicyVersionsV1PolicySchema
+	err := listCall.Pages(ctx, func(resp *chromepolicy.GoogleChromePolicyVersionsV1ListPolicySchemasResponse) error {
 		result = append(result, resp.PolicySchemas...)
 		return nil
 	})
@@ -208,7 +208,7 @@ func dataSourceChromePolicySchemasRead(ctx context.Context, d *schema.ResourceDa
 	return diags
 }
 
-func flattenChromePolicySchemas(schemas []*chromepolicy.GoogleChromePolicyV1PolicySchema) []interface{} {
+func flattenChromePolicySchemas(schemas []*chromepolicy.GoogleChromePolicyVersionsV1PolicySchema) []interface{} {
 	var result []interface{}
 
 	for _, s := range schemas {
@@ -218,7 +218,7 @@ func flattenChromePolicySchemas(schemas []*chromepolicy.GoogleChromePolicyV1Poli
 	return result
 }
 
-func flattenChromePolicySchema(s *chromepolicy.GoogleChromePolicyV1PolicySchema) interface{} {
+func flattenChromePolicySchema(s *chromepolicy.GoogleChromePolicyVersionsV1PolicySchema) interface{} {
 	obj := map[string]interface{}{}
 	obj["schema_name"] = s.SchemaName
 	obj["policy_description"] = s.PolicyDescription

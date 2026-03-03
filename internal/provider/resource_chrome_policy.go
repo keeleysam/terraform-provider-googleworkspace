@@ -118,7 +118,7 @@ func validateChromePolicies(ctx context.Context, d *schema.ResourceData, client 
 	for _, policy := range new.([]interface{}) {
 		schemaName := policy.(map[string]interface{})["schema_name"].(string)
 
-		var schemaDef *chromepolicy.GoogleChromePolicyV1PolicySchema
+		var schemaDef *chromepolicy.GoogleChromePolicyVersionsV1PolicySchema
 		err := retryTimeDuration(ctx, time.Minute, func() error {
 			var retryErr error
 
@@ -332,9 +332,9 @@ func convertPolicyFieldValueType(fieldType string, fieldValue interface{}) (inte
 	return value, err
 }
 
-func expandChromePoliciesValues(policies []interface{}) ([]*chromepolicy.GoogleChromePolicyV1PolicyValue, diag.Diagnostics) {
+func expandChromePoliciesValues(policies []interface{}) ([]*chromepolicy.GoogleChromePolicyVersionsV1PolicyValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	result := []*chromepolicy.GoogleChromePolicyV1PolicyValue{}
+	result := []*chromepolicy.GoogleChromePolicyVersionsV1PolicyValue{}
 
 	for _, p := range policies {
 		policy := p.(map[string]interface{})
@@ -360,7 +360,7 @@ func expandChromePoliciesValues(policies []interface{}) ([]*chromepolicy.GoogleC
 			return nil, diag.FromErr(err)
 		}
 
-		policyObj := chromepolicy.GoogleChromePolicyV1PolicyValue{
+		policyObj := chromepolicy.GoogleChromePolicyVersionsV1PolicyValue{
 			PolicySchema: schemaName,
 			Value:        schemaValuesJson,
 		}
@@ -384,7 +384,7 @@ func expandChromePoliciesAdditionalTargetKeys(keys []interface{}) map[string]str
 	return result
 }
 
-func flattenChromePolicies(ctx context.Context, policiesObj []*chromepolicy.GoogleChromePolicyV1PolicyValue, client *apiClient) ([]map[string]interface{}, diag.Diagnostics) {
+func flattenChromePolicies(ctx context.Context, policiesObj []*chromepolicy.GoogleChromePolicyVersionsV1PolicyValue, client *apiClient) ([]map[string]interface{}, diag.Diagnostics) {
 	var policies []map[string]interface{}
 
 	chromePolicyService, diags := client.NewChromePolicyService()
@@ -398,7 +398,7 @@ func flattenChromePolicies(ctx context.Context, policiesObj []*chromepolicy.Goog
 	}
 
 	for _, polObj := range policiesObj {
-		var schemaDef *chromepolicy.GoogleChromePolicyV1PolicySchema
+		var schemaDef *chromepolicy.GoogleChromePolicyVersionsV1PolicySchema
 		err := retryTimeDuration(ctx, time.Minute, func() error {
 			var retryErr error
 
