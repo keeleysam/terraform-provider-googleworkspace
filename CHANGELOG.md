@@ -1,3 +1,9 @@
+## 1.3.6 (March 04, 2026)
+
+BUG FIX
+
+* Retry logic on ordering resource
+
 ## 1.3.5 (March 03, 2026)
 
 FEATURES

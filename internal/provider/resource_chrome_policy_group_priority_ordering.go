@@ -109,6 +109,12 @@ func resourceChromePolicyGroupPriorityOrderingCreate(ctx context.Context, d *sch
 
 	err := retryTimeDuration(ctx, time.Minute, func() error {
 		_, retryErr := chromePolicyGroupsService.UpdateGroupPriorityOrdering(fmt.Sprintf("customers/%s", client.Customer), req).Do()
+		if isApiErrorWithCode(retryErr, 400) && strings.Contains(retryErr.Error(), "invalid argument") {
+			// The Chrome Policy API has eventual consistency: group policy assignments
+			// may not be immediately visible to the ordering endpoint after creation.
+			// Wrap the error to trigger retryTimeDuration's "timed out while waiting" retry.
+			return fmt.Errorf("timed out while waiting for group policy propagation: %w", retryErr)
+		}
 		return retryErr
 	})
 
@@ -159,6 +165,12 @@ func resourceChromePolicyGroupPriorityOrderingUpdate(ctx context.Context, d *sch
 
 	err := retryTimeDuration(ctx, time.Minute, func() error {
 		_, retryErr := chromePolicyGroupsService.UpdateGroupPriorityOrdering(fmt.Sprintf("customers/%s", client.Customer), req).Do()
+		if isApiErrorWithCode(retryErr, 400) && strings.Contains(retryErr.Error(), "invalid argument") {
+			// The Chrome Policy API has eventual consistency: group policy assignments
+			// may not be immediately visible to the ordering endpoint after creation.
+			// Wrap the error to trigger retryTimeDuration's "timed out while waiting" retry.
+			return fmt.Errorf("timed out while waiting for group policy propagation: %w", retryErr)
+		}
 		return retryErr
 	})
 
