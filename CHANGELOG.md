@@ -1,3 +1,9 @@
+## 1.3.11 (March 06, 2026)
+
+BUG FIX
+
+* `googleworkspace_chrome_policy`: Treat HTTP 400 "BatchInheritOrgUnitPolicies request must contain at least one request" as a non-fatal delete error. This occurs when the target OU no longer exists or the policy schema is no longer valid for the target — in both cases the policy is already absent, making the deletion a no-op. The error is now caught by `isNonFatalDeleteError` alongside the existing "apps are not installed" and "Install Type can only be inherited" cases.
+
 ## 1.3.10 (March 05, 2026)
 
 BUG FIX

@@ -64,7 +64,7 @@ func isApiErrorWithCode(err error, errCode int) bool {
 // BatchInherit (reset to parent). There is no BatchDelete equivalent for OUs —
 // BatchInherit is the only deletion mechanism.
 //
-// Two known non-fatal cases:
+// Three known non-fatal cases:
 //
 //  1. "apps are not installed": The app was uninstalled from the domain. The policy
 //     no longer applies and there is nothing to inherit.
@@ -77,10 +77,17 @@ func isApiErrorWithCode(err error, errCode int) bool {
 //     no-op. A batchDelete equivalent for OUs does not exist in the API (see:
 //     https://developers.google.com/chrome/policy/reference/rest/v1/customers.policies.orgunits).
 //     This case has been reported to Google (support case pending).
+//
+//  3. "BatchInheritOrgUnitPolicies request must contain at least one request":
+//     The API rejects the call even when the requests slice is non-empty. This
+//     happens when the target OU no longer exists (e.g., was deleted outside
+//     Terraform) or the policy schema is no longer valid for that target. In both
+//     cases the policy is already absent, so the deletion is a no-op.
 func isNonFatalDeleteError(err error) bool {
 	msg := err.Error()
 	return strings.Contains(msg, "apps are not installed") ||
-		strings.Contains(msg, "Install Type can only be inherited")
+		strings.Contains(msg, "Install Type can only be inherited") ||
+		strings.Contains(msg, "BatchInheritOrgUnitPolicies request must contain at least one request")
 }
 
 func handleNotFoundError(err error, d *schema.ResourceData, resource string) diag.Diagnostics {
