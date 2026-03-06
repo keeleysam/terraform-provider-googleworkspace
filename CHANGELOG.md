@@ -1,8 +1,8 @@
-## 1.3.11 (March 06, 2026)
+## 1.3.12 (March 06, 2026)
 
 BUG FIX
 
-* `googleworkspace_chrome_policy`: Treat HTTP 400 "BatchInheritOrgUnitPolicies request must contain at least one request" as a non-fatal delete error. This occurs when the target OU no longer exists or the policy schema is no longer valid for the target — in both cases the policy is already absent, making the deletion a no-op. The error is now caught by `isNonFatalDeleteError` alongside the existing "apps are not installed" and "Install Type can only be inherited" cases.
+* `googleworkspace_chrome_policy`: Fix HTTP 400 "BatchInheritOrgUnitPolicies request must contain at least one request" during OU policy **update**. When Terraform detects drift and triggers an update, the update function calls `BatchInherit` to clear old schema values before writing new ones. If the old state has no policies recorded (e.g., after drift detection returns 0 resolved policies), the requests slice is empty and the API rejects the call. The provider now skips the `BatchInherit` call when the requests list is empty in both the update and delete paths. Non-fatal 400 errors (including "apps are not installed", "Install Type can only be inherited", and "BatchInheritOrgUnitPolicies request must contain at least one request") are also now suppressed in the update path via `isNonFatalDeleteError`.
 
 ## 1.3.10 (March 05, 2026)
 

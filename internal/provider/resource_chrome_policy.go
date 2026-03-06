@@ -272,17 +272,19 @@ func resourceChromePolicyUpdate(ctx context.Context, d *schema.ResourceData, met
 			})
 		}
 
-		err := retryTimeDuration(ctx, chromePolicyRetryDuration, func() error {
-			_, retryErr := chromePoliciesService.Orgunits.BatchInherit(fmt.Sprintf("customers/%s", client.Customer), &chromepolicy.GoogleChromePolicyVersionsV1BatchInheritOrgUnitPoliciesRequest{Requests: requests}).Do()
-			return retryErr
-		})
-		if err != nil {
-			// Ignore 400 errors about apps not being installed - this happens when deleting policies for apps
-			// that were uninstalled from the domain
-			if isApiErrorWithCode(err, 400) && strings.Contains(err.Error(), "apps are not installed") {
-				log.Printf("[DEBUG] Ignoring error about apps not being installed during policy inheritance: %v", err)
-			} else {
-				return diag.FromErr(err)
+		if len(requests) == 0 {
+			log.Printf("[DEBUG] Skipping BatchInherit for orgunits:%s — no policies in old state", d.Id())
+		} else {
+			err := retryTimeDuration(ctx, chromePolicyRetryDuration, func() error {
+				_, retryErr := chromePoliciesService.Orgunits.BatchInherit(fmt.Sprintf("customers/%s", client.Customer), &chromepolicy.GoogleChromePolicyVersionsV1BatchInheritOrgUnitPoliciesRequest{Requests: requests}).Do()
+				return retryErr
+			})
+			if err != nil {
+				if isNonFatalDeleteError(err) {
+					log.Printf("[DEBUG] Ignoring non-fatal error during OU policy inheritance (update): %v", err)
+				} else {
+					return diag.FromErr(err)
+				}
 			}
 		}
 	} else {
@@ -331,17 +333,19 @@ func resourceChromePolicyUpdate(ctx context.Context, d *schema.ResourceData, met
 
 				log.Printf("[DEBUG] Making BatchInherit call for target_key=%s, target_value=%s with %d policies", keyValuePair["key"], keyValuePair["value"], len(requests))
 
-				err := retryTimeDuration(ctx, chromePolicyRetryDuration, func() error {
-					_, retryErr := chromePoliciesService.Orgunits.BatchInherit(fmt.Sprintf("customers/%s", client.Customer), &chromepolicy.GoogleChromePolicyVersionsV1BatchInheritOrgUnitPoliciesRequest{Requests: requests}).Do()
-					return retryErr
-				})
-				if err != nil {
-					// Ignore 400 errors about apps not being installed - this happens when deleting policies for apps
-					// that were uninstalled from the domain
-					if isApiErrorWithCode(err, 400) && strings.Contains(err.Error(), "apps are not installed") {
-						log.Printf("[DEBUG] Ignoring error about apps not being installed during policy inheritance for %s=%s: %v", keyValuePair["key"], keyValuePair["value"], err)
-					} else {
-						return diag.FromErr(err)
+				if len(requests) == 0 {
+					log.Printf("[DEBUG] Skipping BatchInherit for orgunits:%s target_key=%s target_value=%s — no policies in old state", d.Id(), keyValuePair["key"], keyValuePair["value"])
+				} else {
+					err := retryTimeDuration(ctx, chromePolicyRetryDuration, func() error {
+						_, retryErr := chromePoliciesService.Orgunits.BatchInherit(fmt.Sprintf("customers/%s", client.Customer), &chromepolicy.GoogleChromePolicyVersionsV1BatchInheritOrgUnitPoliciesRequest{Requests: requests}).Do()
+						return retryErr
+					})
+					if err != nil {
+						if isNonFatalDeleteError(err) {
+							log.Printf("[DEBUG] Ignoring non-fatal error during OU policy inheritance (update) for %s=%s: %v", keyValuePair["key"], keyValuePair["value"], err)
+						} else {
+							return diag.FromErr(err)
+						}
 					}
 				}
 			}
