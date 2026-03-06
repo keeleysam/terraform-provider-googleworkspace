@@ -10,6 +10,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
+// chromePolicyRetryDuration is the default retry duration for Chrome Policy API operations.
+// It is intentionally longer than the retryTransport timeout (90s) to allow the transport
+// layer to complete its Fibonacci backoff before retryTimeDuration gives up. For 429 quota
+// errors this also provides application-level retry on top of the transport-level retry.
+const chromePolicyRetryDuration = 5 * time.Minute
+
 func retryTimeDuration(ctx context.Context, duration time.Duration, retryFunc func() error) error {
 	return resource.RetryContext(ctx, duration, func() *resource.RetryError {
 		err := retryFunc()
@@ -17,7 +23,9 @@ func retryTimeDuration(ctx context.Context, duration time.Duration, retryFunc fu
 		if err == nil {
 			return nil
 		}
-		if IsNotConsistent(err) {
+		// Use the full set of retry predicates (covers 429 rate-limit, 5xx, network errors, etc.)
+		// in addition to the consistency check used for eventual-consistency retries.
+		if IsNotConsistent(err) || isRetryableError(err) {
 			return resource.RetryableError(err)
 		}
 

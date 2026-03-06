@@ -1,3 +1,9 @@
+## 1.3.9 (March 05, 2026)
+
+BUG FIX
+
+* `googleworkspace_chrome_policy`, `googleworkspace_chrome_group_policy`: Fix 429 quota errors not being retried at the application level. `retryTimeDuration` previously only retried on eventual-consistency errors ("timed out while waiting"); it now delegates to `isRetryableError` which covers 429 rate-limit, 403 quota-exceeded, 5xx, and network errors. The retry window is also extended from 1 minute to 5 minutes to allow the transport-level Fibonacci backoff (up to 90 seconds per attempt) to complete without context cancellation.
+
 ## 1.3.8 (March 05, 2026)
 
 BUG FIX
