@@ -35,11 +35,11 @@ func resourceChromePolicySet() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"org_unit_id": {
-				Description:   "The target org unit on which policies are applied.",
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				ConflictsWith: []string{"group_id"},
+				Description:      "The target org unit on which policies are applied.",
+				Type:             schema.TypeString,
+				Optional:         true,
+				ForceNew:         true,
+				ConflictsWith:    []string{"group_id"},
 				DiffSuppressFunc: diffSuppressOrgUnitId,
 			},
 			"group_id": {
@@ -754,7 +754,7 @@ func resourceChromePolicySetDelete(ctx context.Context, d *schema.ResourceData, 
 	var requests []*chromepolicy.GoogleChromePolicyVersionsV1InheritOrgUnitPolicyRequest
 	for _, entry := range entries {
 		targetKey := &chromepolicy.GoogleChromePolicyVersionsV1PolicyTargetKey{
-			TargetResource:     targetResource,
+			TargetResource:       targetResource,
 			AdditionalTargetKeys: entry.Identity.AdditionalTargetKeys,
 		}
 		requests = append(requests, &chromepolicy.GoogleChromePolicyVersionsV1InheritOrgUnitPolicyRequest{
