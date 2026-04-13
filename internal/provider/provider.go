@@ -62,6 +62,18 @@ func New(version string) func() *schema.Provider {
 					Optional: true,
 				},
 
+				"billing_project": {
+					Description: "A Google Cloud project to use for quota and billing when making " +
+						"Google Workspace API requests. If not set, the project associated with the " +
+						"credentials or application default credentials will be used for billing. " +
+						"Sets the `X-Goog-User-Project` header on requests.",
+					Type:     schema.TypeString,
+					Optional: true,
+					DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+						"GOOGLE_BILLING_PROJECT",
+					}, nil),
+				},
+
 				"credentials": {
 					Description: "Either the path to or the contents of a service account key file in JSON format " +
 						"you can manage key files using the Cloud Console).  If not provided, the application default " +
@@ -160,6 +172,11 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 		// Get access token
 		if v, ok := d.GetOk("access_token"); ok {
 			config.AccessToken = v.(string)
+		}
+
+		// Get billing project
+		if v, ok := d.GetOk("billing_project"); ok {
+			config.BillingProject = v.(string)
 		}
 
 		// Get credentials

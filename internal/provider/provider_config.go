@@ -24,6 +24,7 @@ type apiClient struct {
 	client *http.Client
 
 	AccessToken           string
+	BillingProject        string
 	ClientScopes          []string
 	Credentials           string
 	Customer              string
@@ -122,7 +123,11 @@ func (c *apiClient) SetupClient(ctx context.Context, creds *googleoauth.Credenti
 	cleanCtx := context.WithValue(ctx, oauth2.HTTPClient, cleanhttp.DefaultClient())
 
 	// 1. MTLS TRANSPORT/CLIENT - sets up proper auth headers
-	client, _, err := transport.NewHTTPClient(cleanCtx, option.WithTokenSource(creds.TokenSource))
+	clientOpts := []option.ClientOption{option.WithTokenSource(creds.TokenSource)}
+	if c.BillingProject != "" {
+		clientOpts = append(clientOpts, option.WithQuotaProject(c.BillingProject))
+	}
+	client, _, err := transport.NewHTTPClient(cleanCtx, clientOpts...)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -195,6 +200,7 @@ func (c *apiClient) NewGmailService(ctx context.Context, userId string) (*gmail.
 	// the alias is being created for.
 	log.Printf("[INFO] Creating Google Admin Gmail client that impersonates %q", userId)
 	newClient := &apiClient{
+		BillingProject:        c.BillingProject,
 		Credentials:           c.Credentials,
 		ClientScopes:          c.ClientScopes,
 		Customer:              c.Customer,

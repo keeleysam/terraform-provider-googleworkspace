@@ -40,7 +40,7 @@ func TestConfigLoadAndValidate_credsJSON(t *testing.T) {
 	diags := config.loadAndValidate(context.Background())
 	err = checkDiags(diags)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err)
 	}
 }
 
@@ -53,7 +53,7 @@ func TestConfigLoadAndValidate_credsFromFile(t *testing.T) {
 	diags := config.loadAndValidate(context.Background())
 	err := checkDiags(diags)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err)
 	}
 }
 
@@ -74,13 +74,13 @@ func TestAccConfigLoadAndValidate_credsFromEnv(t *testing.T) {
 	diags := config.loadAndValidate(context.Background())
 	err := checkDiags(diags)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err)
 	}
 
 	diags = checkValidCreds(config)
 	err = checkDiags(diags)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err)
 	}
 }
 
@@ -92,7 +92,46 @@ func TestConfigLoadAndValidate_credsNoImpersonation(t *testing.T) {
 	diags := config.loadAndValidate(context.Background())
 	err := checkDiags(diags)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err)
+	}
+}
+
+func TestConfigBillingProject(t *testing.T) {
+	config := &apiClient{
+		Credentials:           testFakeCredentialsPath,
+		BillingProject:        "my-billing-project",
+		ImpersonatedUserEmail: "my-fake-email@example.com",
+	}
+
+	diags := config.loadAndValidate(context.Background())
+	err := checkDiags(diags)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if config.BillingProject != "my-billing-project" {
+		t.Fatalf("expected billing project to be %q, got %q", "my-billing-project", config.BillingProject)
+	}
+
+	if config.client == nil {
+		t.Fatal("expected HTTP client to be initialized")
+	}
+}
+
+func TestConfigBillingProject_empty(t *testing.T) {
+	config := &apiClient{
+		Credentials:           testFakeCredentialsPath,
+		ImpersonatedUserEmail: "my-fake-email@example.com",
+	}
+
+	diags := config.loadAndValidate(context.Background())
+	err := checkDiags(diags)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if config.client == nil {
+		t.Fatal("expected HTTP client to be initialized")
 	}
 }
 
@@ -106,7 +145,7 @@ func TestConfigOauthScopes_custom(t *testing.T) {
 	diags := config.loadAndValidate(context.Background())
 	err := checkDiags(diags)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err)
 	}
 
 	if len(config.ClientScopes) != 1 {
@@ -149,12 +188,12 @@ func TestConfigLoadAndValidate_accessToken(t *testing.T) {
 	diags := gcpConfig.loadAndValidate(context.Background())
 	err := checkDiags(diags)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err)
 	}
 
 	iamCredsService, err := iamcredentials.NewService(context.Background(), option.WithHTTPClient(gcpConfig.client))
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err)
 	}
 	serviceAccount := fmt.Sprintf("projects/-/serviceAccounts/%s", os.Getenv("GOOGLEWORKSPACE_IMPERSONATED_SERVICE_ACCOUNT"))
 	tokenRequest := &iamcredentials.GenerateAccessTokenRequest{
@@ -163,7 +202,7 @@ func TestConfigLoadAndValidate_accessToken(t *testing.T) {
 	}
 	at, err := iamCredsService.Projects.ServiceAccounts.GenerateAccessToken(serviceAccount, tokenRequest).Do()
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err)
 	}
 
 	config := &apiClient{
@@ -176,13 +215,13 @@ func TestConfigLoadAndValidate_accessToken(t *testing.T) {
 	diags = config.loadAndValidate(context.Background())
 	err = checkDiags(diags)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err)
 	}
 
 	diags = checkValidCreds(config)
 	err = checkDiags(diags)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err)
 	}
 }
 
@@ -230,13 +269,13 @@ func TestConfigLoadAndValidate_accessTokenOnly(t *testing.T) {
 	diags := config.loadAndValidate(context.Background())
 	err = checkDiags(diags)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err)
 	}
 
 	diags = checkValidCredsGroupAdmin(config)
 	err = checkDiags(diags)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err)
 	}
 }
 
