@@ -1,3 +1,22 @@
+## Unreleased
+
+FEATURES
+
+* **New Resource**: `googleworkspace_chrome_policy_set` — Authoritative Chrome policy management. Manages all policies matching a schema filter for a given target (org unit or group). Policies not declared in config are removed (inherited).
+* **New Data Source**: `googleworkspace_chrome_policy_schemas` — List and inspect available Chrome policy schemas with optional filtering.
+* **New Data Source**: `googleworkspace_org_units` — List multiple org units.
+* **New Provider Attribute**: `billing_project` — Set a Google Cloud project for quota and billing on API requests (`X-Goog-User-Project` header). Configurable via `GOOGLE_BILLING_PROJECT` env var.
+
+IMPROVEMENTS
+
+* Extract shared Chrome policy CRUD logic into `chrome_policy_common.go` with `chromePolicyReadCommon()`, `chromePolicyCreateCommon()`, and `chromePolicyImportCommon()` helpers, reducing duplication across `resource_chrome_policy` and `resource_chrome_group_policy`.
+* Use consistent 5-minute retry duration (`chromePolicyRetryDuration`) across all Chrome policy resources. `chrome_policy_set` and `chrome_policy_group_priority_ordering` previously used 1 minute.
+* Add unit tests for `chrome_policy_set` pure functions (filter matching, hashing, identity, flattening).
+* Restore and consolidate Chrome policy common unit tests in `chrome_policy_common_test.go`.
+* Add `tfplugindocs` template for `chrome_policy_set` to preserve hand-written documentation across `make generate`.
+* Fix example in `role_assignment` resource: reference `googleworkspace_org_unit` instead of `googleworkspace_user` for org unit ID.
+* Update CI workflows to use `go-version-file: 'go.mod'` and modern GitHub Actions (v4/v5).
+
 ## 1.3.13 (March 06, 2026)
 
 BUG FIX
