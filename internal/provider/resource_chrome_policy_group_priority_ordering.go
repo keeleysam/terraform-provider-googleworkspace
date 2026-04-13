@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"strings"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -107,7 +106,7 @@ func resourceChromePolicyGroupPriorityOrderingCreate(ctx context.Context, d *sch
 		GroupIds:        groupIds,
 	}
 
-	err := retryTimeDuration(ctx, time.Minute, func() error {
+	err := retryTimeDuration(ctx, chromePolicyRetryDuration, func() error {
 		_, retryErr := chromePolicyGroupsService.UpdateGroupPriorityOrdering(fmt.Sprintf("customers/%s", client.Customer), req).Do()
 		return retryErr
 	})
@@ -157,7 +156,7 @@ func resourceChromePolicyGroupPriorityOrderingUpdate(ctx context.Context, d *sch
 		GroupIds:        groupIds,
 	}
 
-	err := retryTimeDuration(ctx, time.Minute, func() error {
+	err := retryTimeDuration(ctx, chromePolicyRetryDuration, func() error {
 		_, retryErr := chromePolicyGroupsService.UpdateGroupPriorityOrdering(fmt.Sprintf("customers/%s", client.Customer), req).Do()
 		return retryErr
 	})
@@ -197,7 +196,7 @@ func resourceChromePolicyGroupPriorityOrderingRead(ctx context.Context, d *schem
 	}
 
 	var resp *chromepolicy.GoogleChromePolicyVersionsV1ListGroupPriorityOrderingResponse
-	err := retryTimeDuration(ctx, time.Minute, func() error {
+	err := retryTimeDuration(ctx, chromePolicyRetryDuration, func() error {
 		var retryErr error
 		resp, retryErr = chromePolicyGroupsService.ListGroupPriorityOrdering(fmt.Sprintf("customers/%s", client.Customer), req).Do()
 		return retryErr

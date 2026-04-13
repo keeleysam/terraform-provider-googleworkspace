@@ -8,7 +8,6 @@ import (
 	"log"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -312,7 +311,7 @@ func resolveDirectlySetPolicies(
 
 	for {
 		var resp *chromepolicy.GoogleChromePolicyVersionsV1ResolveResponse
-		err := retryTimeDuration(ctx, time.Minute, func() error {
+		err := retryTimeDuration(ctx, chromePolicyRetryDuration, func() error {
 			var retryErr error
 			resp, retryErr = policiesService.Resolve(
 				fmt.Sprintf("customers/%s", customer), req,
@@ -366,7 +365,7 @@ func (sc *schemaCache) get(ctx context.Context, schemaName string) (*chromepolic
 	}
 
 	var schemaDef *chromepolicy.GoogleChromePolicyVersionsV1PolicySchema
-	err := retryTimeDuration(ctx, time.Minute, func() error {
+	err := retryTimeDuration(ctx, chromePolicyRetryDuration, func() error {
 		var retryErr error
 		schemaDef, retryErr = sc.service.Get(
 			fmt.Sprintf("customers/%s/policySchemas/%s", sc.customer, schemaName),
@@ -697,7 +696,7 @@ func resourceChromePolicySetUpdate(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	if len(inheritRequests) > 0 {
-		err := retryTimeDuration(ctx, time.Minute, func() error {
+		err := retryTimeDuration(ctx, chromePolicyRetryDuration, func() error {
 			_, retryErr := policiesService.Orgunits.BatchInherit(
 				fmt.Sprintf("customers/%s", client.Customer),
 				&chromepolicy.GoogleChromePolicyVersionsV1BatchInheritOrgUnitPoliciesRequest{Requests: inheritRequests},
@@ -763,7 +762,7 @@ func resourceChromePolicySetDelete(ctx context.Context, d *schema.ResourceData, 
 		})
 	}
 
-	err := retryTimeDuration(ctx, time.Minute, func() error {
+	err := retryTimeDuration(ctx, chromePolicyRetryDuration, func() error {
 		_, retryErr := policiesService.Orgunits.BatchInherit(
 			fmt.Sprintf("customers/%s", client.Customer),
 			&chromepolicy.GoogleChromePolicyVersionsV1BatchInheritOrgUnitPoliciesRequest{Requests: requests},
@@ -822,7 +821,7 @@ func batchModifyPolicies(
 		})
 	}
 
-	err := retryTimeDuration(ctx, time.Minute, func() error {
+	err := retryTimeDuration(ctx, chromePolicyRetryDuration, func() error {
 		_, retryErr := policiesService.Orgunits.BatchModify(
 			fmt.Sprintf("customers/%s", customer),
 			&chromepolicy.GoogleChromePolicyVersionsV1BatchModifyOrgUnitPoliciesRequest{Requests: requests},
