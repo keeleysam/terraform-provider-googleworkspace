@@ -25,8 +25,9 @@ internal/provider/                   # ALL provider code lives here (single pack
   provider.go                        # Provider schema, resource/datasource registry, configure()
   provider_config.go                 # apiClient struct, auth setup, service constructors
   services.go                        # GetXxxService() helpers that extract sub-services
-  resource_*.go                      # Resource implementations (17 resources)
-  data_source_*.go                   # Data source implementations (15 data sources)
+  chrome_policy_common.go             # Shared chrome policy CRUD (Read, Import, Create), helpers, types
+  resource_*.go                      # Resource implementations (18 resources)
+  data_source_*.go                   # Data source implementations (17 data sources)
   *_test.go                          # Tests (acceptance + unit, co-located with implementations)
   *_sweeper_test.go                  # Test resource cleanup sweepers
   utils.go                           # Shared helpers (error handling, string conversion, etc.)
@@ -37,7 +38,7 @@ internal/provider/                   # ALL provider code lives here (single pack
   retry_predicates.go                # Error classification for retry decisions
   logging_transport.go               # HTTP logging with sensitive value scrubbing
 examples/                            # Terraform HCL examples (used by doc generator)
-docs/                                # Generated documentation (do not edit by hand)
+docs/                                # Provider documentation (hand-edited for new resources)
 ```
 
 ## Architecture
@@ -50,6 +51,7 @@ The provider is configured via `provider.go:New()` which registers all resources
 type apiClient struct {
     client                *http.Client
     AccessToken           string
+    BillingProject        string       // optional - sets X-Goog-User-Project for quota/billing
     ClientScopes          []string
     Credentials           string
     Customer              string       // required - Google Workspace customer ID
@@ -114,6 +116,7 @@ Data sources reuse resource schemas via `datasourceSchemaFromResourceSchema()` w
 
 - `handleNotFoundError()` — on HTTP 404, clears resource ID (removes from state) instead of erroring
 - `isApiErrorWithCode()` — checks Google API errors for specific HTTP codes
+- `isNonFatalDeleteError()` — suppresses known-safe 400 errors during Chrome Policy OU deletion (apps uninstalled, nothing to inherit, target gone)
 - HTTP retry transport (`retry_transport.go`) handles transient errors: 429 rate limit, 500/502/503, network timeouts, connection resets, io.EOF
 - Fibonacci backoff starting at 500ms, max 90 seconds
 
@@ -125,9 +128,28 @@ Data sources reuse resource schemas via `datasourceSchemaFromResourceSchema()` w
 - `pathOrContents()` — loads a file path or treats the string as inline content (used for credentials)
 - `listOfInterfacestoStrings()`, `stringInSlice()`, `isEmail()` — common collection/validation helpers
 
+### Chrome Policy Architecture
+
+Chrome policies use a shared CRUD pattern in `chrome_policy_common.go`:
+
+- **`chromePolicyCreateCommon()`** — validates, expands, groups by additional_target_keys, then calls a `chromePolicyBatchModifyFunc` callback. Org units use `orgUnitBatchModify` (batches all policies in one call); groups use `groupBatchModify` (one policy per call as API workaround).
+- **`chromePolicyReadCommon()`** — resolves each policy via the Resolve API, parameterized by target kind.
+- **`chromePolicyImportCommon()`** — parses import ID, validates schemas exist on target.
+- **`groupAdditionalTargetKeys()`** — parses the `additional_target_keys` schema attribute into grouped key/value pairs.
+
+Org-unit-specific logic (`resource_chrome_policy.go`):
+- **Update**: Inherit-then-recreate pattern using `orgUnitBatchInherit` + `isNonFatalDeleteError`
+- **Delete**: Same `orgUnitBatchInherit` pattern
+
+Group-specific logic (`resource_chrome_group_policy.go`):
+- **Update**: Create-first-then-delete-removed using `computeRemovedPolicies` + `deleteChromePoliciesFromGroup`
+- **Delete**: `deleteChromePoliciesFromGroup` using `Groups.BatchDelete` with "apps not installed" error suppression
+
+`chrome_policy_set` is a separate authoritative resource that manages all policies matching a wildcard filter — it has its own independent CRUD in `resource_chrome_policy_set.go`.
+
 ## Resources & Data Sources
 
-### Resources (17)
+### Resources (18)
 | Resource | API | Notes |
 |---|---|---|
 | `googleworkspace_user` | Admin Directory | Largest resource (~1800 lines), complex nested schemas (name, emails, phones, custom schemas) |
@@ -143,13 +165,14 @@ Data sources reuse resource schemas via `datasourceSchemaFromResourceSchema()` w
 | `googleworkspace_role_assignment` | Admin Directory | Assign roles to users |
 | `googleworkspace_schema` | Admin Directory | Custom user schema definitions with nested fields |
 | `googleworkspace_gmail_send_as_alias` | Gmail API | Requires per-user impersonation (creates new client per user) |
-| `googleworkspace_chrome_policy` | Chrome Policy API | Chrome policy management |
-| `googleworkspace_chrome_policy_file` | Chrome Policy API | File-based Chrome policies |
-| `googleworkspace_chrome_group_policy` | Chrome Policy API | Group-scoped Chrome policies |
-| `googleworkspace_chrome_policy_group_priority_ordering` | Chrome Policy API | Policy priority ordering |
+| `googleworkspace_chrome_policy` | Chrome Policy API | Org-unit-scoped Chrome policies (shared CRUD via chrome_policy_common.go) |
+| `googleworkspace_chrome_group_policy` | Chrome Policy API | Group-scoped Chrome policies (shared CRUD via chrome_policy_common.go) |
+| `googleworkspace_chrome_policy_set` | Chrome Policy API | Authoritative policy management — manages all policies matching a filter, removing unmanaged ones |
+| `googleworkspace_chrome_policy_file` | Chrome Policy API | File uploads (wallpapers, etc.) for Chrome policies |
+| `googleworkspace_chrome_policy_group_priority_ordering` | Chrome Policy API | Policy priority ordering across groups |
 
-### Data Sources (15)
-Singular lookups (by ID or key field) and plural list versions for users, groups, group members, domains, roles, schemas, Chrome policy schemas, privileges.
+### Data Sources (17)
+Singular lookups (by ID or key field) and plural list versions for users, groups, group members, domains, org units, roles, schemas, Chrome policy schemas, Chrome policy group priority ordering, privileges.
 
 ## Testing Conventions
 
@@ -197,7 +220,7 @@ func TestAccResourceXxx_basic(t *testing.T) {
 5. Create `resource_xxx_test.go` with acceptance tests (basic, full, update steps + import verification)
 6. Create `resource_xxx_sweeper_test.go` for test cleanup
 7. Add example in `examples/resources/googleworkspace_xxx/resource.tf`
-8. Run `make generate` to produce docs in `docs/resources/xxx.md`
+8. Add or generate docs in `docs/resources/xxx.md`
 
 ## Key Dependencies
 
@@ -216,5 +239,5 @@ func TestAccResourceXxx_basic(t *testing.T) {
 - **Gmail service impersonation**: The Gmail send-as-alias resource creates a _new_ `apiClient` per user because the OAuth token must impersonate the specific user whose alias is being managed.
 - **404 in Read/Delete**: Always use `handleNotFoundError()` — it removes the resource from state rather than erroring, which is the expected Terraform behavior for deleted resources.
 - **Schema descriptions use Markdown** (`schema.DescriptionKind = schema.StringMarkdown` in `init()`).
-- **Documentation is generated**: Don't edit files in `docs/` by hand. Edit resource descriptions/schemas and example files, then run `make generate`.
+- **Documentation**: Older docs were auto-generated via `make generate`, but newer resources (chrome_policy_set, chrome_policy_schemas, org_units, etc.) have hand-written docs. Either approach works — just ensure every registered resource/data source has a corresponding `docs/` file.
 - **snake_case <-> camelCase**: When mapping between Terraform schema fields and Google API objects, use `SnakeToCamel()`/`CameltoSnake()` or the `expandInterfaceObjects()`/`flattenInterfaceObjects()` helpers for nested structures.
