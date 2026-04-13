@@ -16,13 +16,6 @@ import (
 	"google.golang.org/api/chromepolicy/v1"
 )
 
-type chromePolicyTargetKind string
-
-const (
-	targetOrgUnit chromePolicyTargetKind = "orgunits"
-	targetGroup   chromePolicyTargetKind = "groups"
-)
-
 func resourceChromePolicySet() *schema.Resource {
 	return &schema.Resource{
 		Description: "Authoritative Chrome Policy Set resource that manages all Chrome policies " +
