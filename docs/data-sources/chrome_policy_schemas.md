@@ -39,14 +39,14 @@ output "num_schemas" {
 
 Read-Only:
 
-- `access_restrictions` (List of String) Specific access restrictions related to this policy.
-- `additional_target_key_names` (List of Object) Additional key names that will be used to identify the target of the policy value. (see [below for nested schema](#nestedobjatt--policy_schemas--additional_target_key_names))
-- `definition` (List of Object) Schema definition using proto descriptor. (see [below for nested schema](#nestedobjatt--policy_schemas--definition))
-- `field_descriptions` (String) Detailed description of each field that is part of the schema, represented as a JSON string.
-- `notices` (List of Object) Special notice messages related to setting certain values in certain fields in the schema. (see [below for nested schema](#nestedobjatt--policy_schemas--notices))
-- `policy_description` (String) Description about the policy schema for user consumption.
-- `schema_name` (String) The full qualified name of the policy schema.
-- `support_uri` (String) URI to related support article for this schema.
+- `access_restrictions` (List of String)
+- `additional_target_key_names` (List of Object) (see [below for nested schema](#nestedobjatt--policy_schemas--additional_target_key_names))
+- `definition` (List of Object) (see [below for nested schema](#nestedobjatt--policy_schemas--definition))
+- `field_descriptions` (String)
+- `notices` (List of Object) (see [below for nested schema](#nestedobjatt--policy_schemas--notices))
+- `policy_description` (String)
+- `schema_name` (String)
+- `support_uri` (String)
 
 <a id="nestedobjatt--policy_schemas--additional_target_key_names"></a>
 ### Nested Schema for `policy_schemas.additional_target_key_names`
@@ -55,6 +55,7 @@ Read-Only:
 
 - `key` (String)
 - `key_description` (String)
+
 
 <a id="nestedobjatt--policy_schemas--definition"></a>
 ### Nested Schema for `policy_schemas.definition`
@@ -85,6 +86,7 @@ Read-Only:
 
 
 
+
 <a id="nestedobjatt--policy_schemas--notices"></a>
 ### Nested Schema for `policy_schemas.notices`
 
@@ -94,3 +96,5 @@ Read-Only:
 - `field` (String)
 - `notice_message` (String)
 - `notice_value` (String)
+
+

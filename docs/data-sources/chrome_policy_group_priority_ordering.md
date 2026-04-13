@@ -66,6 +66,7 @@ output "app_specific_group_priority_order" {
 
 ### Read-Only
 
+- `exists` (Boolean) Whether the group priority ordering exists in the API. False when the API returns 400 (e.g., no groups have been assigned this policy yet).
 - `group_ids` (List of String) Ordered list of group IDs. Groups earlier in the list have higher priority and their policies will override those of groups later in the list.
 - `id` (String) Identifier for the data source.
 

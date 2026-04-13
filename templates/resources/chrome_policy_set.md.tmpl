@@ -1,0 +1,32 @@
+---
+page_title: "{{.Name}} Resource - {{.ProviderName}}"
+subcategory: ""
+description: |-
+  Authoritative Chrome Policy Set resource that manages all Chrome policies matching a schema filter for a given target (org unit or group). Any directly-set policies in the scope that are not declared in config will be removed (inherited).
+---
+
+# {{.Name}} ({{.Type}})
+
+Authoritative Chrome Policy Set resource that manages all Chrome policies matching a schema filter for a given target (org unit or group). Any directly-set policies in the scope that are not declared in config will be removed (inherited).
+
+Unlike `googleworkspace_chrome_policy`, this resource is fully authoritative over the specified `policy_schema_filter` scope. Policies within the scope that are not explicitly declared in configuration will be reset to inherit from the parent.
+
+Chrome Policy resides under the `https://www.googleapis.com/auth/chrome.management.policy` client scope.
+
+## Example Usage
+
+{{ tffile "examples/resources/googleworkspace_chrome_policy_set/resource.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+# Org unit target:
+terraform import googleworkspace_chrome_policy_set.example orgunits/03ph8a2z1kajcan/chrome.users.*
+
+# Group target:
+terraform import googleworkspace_chrome_policy_set.app_policies groups/01abcdef/chrome.users.apps.*
+```

@@ -27,24 +27,27 @@ output "num_org_units" {
 
 ### Optional
 
-- **org_unit_path** (String) The full path to the organizational unit or its unique ID. Returns the children of the specified organizational unit.
-- **type** (String) Whether to return all sub-organizations or just immediate children. Valid values are `ALL`, `CHILDREN`, and `ALL_INCLUDING_PARENT`. Defaults to `CHILDREN`.
+- `org_unit_path` (String) The full path to the organizational unit or its unique ID. Returns the children of the specified organizational unit.
+- `type` (String) Whether to return all sub-organizations or just immediate children. Valid values are `ALL`, `CHILDREN`, and `ALL_INCLUDING_PARENT`. Defaults to `CHILDREN`.
 
 ### Read-Only
 
-- **id** (String) The ID of this resource.
-- **org_units** (List of Object) A list of Org Unit resources. (see [below for nested schema](#nestedatt--org_units))
+- `id` (String) The ID of this resource.
+- `org_units` (List of Object) A list of Org Unit resources. (see [below for nested schema](#nestedatt--org_units))
 
 <a id="nestedatt--org_units"></a>
 ### Nested Schema for `org_units`
 
 Read-Only:
 
-- **block_inheritance** (Boolean) Determines if a sub-organizational unit can inherit the settings of the parent organization. False means a sub-organizational unit inherits the settings of the nearest parent organizational unit. For more information on inheritance and users in an organization structure, see the [administration help center](https://support.google.com/a/answer/4352075).
-- **description** (String) Description of the organizational unit.
-- **etag** (String) ETag of the resource.
-- **name** (String) The organizational unit's path name. For example, an organizational unit's name within the /corp/support/sales_support parent path is sales_support.
-- **org_unit_id** (String) The unique ID of the organizational unit.
-- **org_unit_path** (String) The full path to the organizational unit.
-- **parent_org_unit_id** (String) The unique ID of the parent organizational unit.
-- **parent_org_unit_path** (String) The organizational unit's parent path. For example, /corp/sales is the parent path for /corp/sales/sales_support organizational unit.
+- `block_inheritance` (Boolean)
+- `description` (String)
+- `etag` (String)
+- `id` (String)
+- `name` (String)
+- `org_unit_id` (String)
+- `org_unit_path` (String)
+- `parent_org_unit_id` (String)
+- `parent_org_unit_path` (String)
+
+

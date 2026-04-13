@@ -50,5 +50,5 @@ resource "googleworkspace_role_assignment" "org-unit-scope" {
   role_id     = googleworkspace_role.org-unit-privs.id
   assigned_to = googleworkspace_user.dwight.id
   scope_type  = "ORG_UNIT"
-  org_unit_id = googleworkspace_user.org-unit.id
+  org_unit_id = googleworkspace_org_unit.org-unit.id
 }
