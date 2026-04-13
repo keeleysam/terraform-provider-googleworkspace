@@ -45,18 +45,6 @@ func chromePolicyTargetID(d *schema.ResourceData, kind chromePolicyTargetKind) s
 	}
 }
 
-// idAttrForKind returns the schema attribute name for the target ID.
-func idAttrForKind(kind chromePolicyTargetKind) string {
-	switch kind {
-	case targetOrgUnit:
-		return "org_unit_id"
-	case targetGroup:
-		return "group_id"
-	default:
-		return ""
-	}
-}
-
 // ---------------------------------------------------------------------------
 // Additional target keys helper (was duplicated 5 times)
 // ---------------------------------------------------------------------------

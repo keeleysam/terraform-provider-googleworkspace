@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 	"google.golang.org/api/googleapi"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -131,7 +131,7 @@ func TestRetryTransport_DoesNotRetryEmptyGetBody(t *testing.T) {
 	ts, client := setUpRetryTransportServerClient(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			// Check for request body
-			dump, err := ioutil.ReadAll(r.Body)
+			dump, err := io.ReadAll(r.Body)
 			if err != nil {
 				w.WriteHeader(testRetryTransportCodeFailure)
 				if _, werr := w.Write([]byte(fmt.Sprintf("got error: %v", err))); werr != nil {
@@ -190,7 +190,7 @@ func testRetryTransportHandler_returnAfter(t *testing.T, interval time.Duration,
 		var slurp []byte
 		if r.Body != nil && r.Body != http.NoBody {
 			var err error
-			slurp, err = ioutil.ReadAll(r.Body)
+			slurp, err = io.ReadAll(r.Body)
 			if err != nil {
 				w.WriteHeader(testRetryTransportCodeFailure)
 				if _, err := w.Write([]byte(fmt.Sprintf("unable to read request body: %v", err))); err != nil {
@@ -283,7 +283,7 @@ func testRetryTransport_checkBody(t *testing.T, resp *http.Response, expectedMsg
 		t.Fatal("expected non-empty response")
 	}
 
-	actualBody, err := ioutil.ReadAll(resp.Body)
+	actualBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("expected no error, unable to read response body: %v", err)
 	}
