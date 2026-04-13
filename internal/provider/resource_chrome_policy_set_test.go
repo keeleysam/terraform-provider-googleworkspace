@@ -17,11 +17,11 @@ func TestSchemaNameMatchesFilter_exact(t *testing.T) {
 		{"chrome.users.MaxConnectionsPerProxy", "chrome.users.OtherPolicy", false},
 		{"chrome.users.MaxConnectionsPerProxy", "chrome.users.*", true},
 		{"chrome.users.apps.InstallType", "chrome.users.apps.*", true},
-		{"chrome.users.apps.InstallType", "chrome.users.*", false},     // dots in leaf
+		{"chrome.users.apps.InstallType", "chrome.users.*", false},         // dots in leaf
 		{"chrome.users.MaxConnectionsPerProxy", "chrome.devices.*", false}, // wrong prefix
-		{"chrome.users.MaxConnectionsPerProxy", "chrome.*", false},     // leaf has dots
-		{"", "chrome.users.*", false},                                  // empty name
-		{"chrome.users.Foo", "chrome.users.Foo", true},                 // exact match, no wildcard
+		{"chrome.users.MaxConnectionsPerProxy", "chrome.*", false},         // leaf has dots
+		{"", "chrome.users.*", false},                                      // empty name
+		{"chrome.users.Foo", "chrome.users.Foo", true},                     // exact match, no wildcard
 	}
 	for _, c := range cases {
 		got := schemaNameMatchesFilter(c.name, c.filter)
@@ -80,13 +80,13 @@ func TestChromePolicySetHash_differentSchemas(t *testing.T) {
 
 func TestChromePolicySetHash_withAdditionalKeys(t *testing.T) {
 	pol1 := map[string]interface{}{
-		"schema_name":          "chrome.users.apps.InstallType",
-		"schema_values":        map[string]interface{}{},
+		"schema_name":            "chrome.users.apps.InstallType",
+		"schema_values":          map[string]interface{}{},
 		"additional_target_keys": map[string]interface{}{"app_id": "chrome:abc"},
 	}
 	pol2 := map[string]interface{}{
-		"schema_name":          "chrome.users.apps.InstallType",
-		"schema_values":        map[string]interface{}{},
+		"schema_name":            "chrome.users.apps.InstallType",
+		"schema_values":          map[string]interface{}{},
 		"additional_target_keys": map[string]interface{}{"app_id": "chrome:def"},
 	}
 	if chromePolicySetHash(pol1) == chromePolicySetHash(pol2) {
@@ -130,8 +130,8 @@ func TestPolicyIdentityKey_sortedAdditionalKeys(t *testing.T) {
 
 func TestIdentityFromPolicy(t *testing.T) {
 	pol := map[string]interface{}{
-		"schema_name":          "chrome.users.apps.InstallType",
-		"schema_values":        map[string]interface{}{},
+		"schema_name":            "chrome.users.apps.InstallType",
+		"schema_values":          map[string]interface{}{},
 		"additional_target_keys": map[string]interface{}{"app_id": "chrome:abc"},
 	}
 	id := identityFromPolicy(pol)
@@ -240,8 +240,8 @@ func TestBuildPolicyTargetKey_noAdditionalKeys(t *testing.T) {
 
 func TestBuildPolicyTargetKey_withAdditionalKeys(t *testing.T) {
 	pol := map[string]interface{}{
-		"schema_name":          "chrome.users.apps.InstallType",
-		"schema_values":        map[string]interface{}{},
+		"schema_name":            "chrome.users.apps.InstallType",
+		"schema_values":          map[string]interface{}{},
 		"additional_target_keys": map[string]interface{}{"app_id": "chrome:abc"},
 	}
 	key := buildPolicyTargetKey("groups/def", pol)
