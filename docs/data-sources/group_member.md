@@ -58,5 +58,3 @@ output "group_member_role" {
 	- `CUSTOMER`: The member represents all users in a domain. An email address is not returned and the ID returned is the customer ID. 
 	- `GROUP`: The member is another group. 
 	- `USER`: The member is a user.
-
-

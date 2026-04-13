@@ -35,5 +35,3 @@ data "googleworkspace_org_unit" "org" {
 - `name` (String) The organizational unit's path name. For example, an organizational unit's name within the /corp/support/sales_support parent path is sales_support.
 - `parent_org_unit_id` (String) The unique ID of the parent organizational unit.
 - `parent_org_unit_path` (String) The organizational unit's parent path. For example, /corp/sales is the parent path for /corp/sales/sales_support organizational unit.
-
-

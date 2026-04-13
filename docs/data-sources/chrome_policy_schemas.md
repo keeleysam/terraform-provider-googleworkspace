@@ -96,5 +96,3 @@ Read-Only:
 - `field` (String)
 - `notice_message` (String)
 - `notice_value` (String)
-
-

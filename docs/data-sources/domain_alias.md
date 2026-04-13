@@ -36,5 +36,3 @@ output "parent-domain" {
 - `id` (String) The ID of this resource.
 - `parent_domain_name` (String) The parent domain name that the domain alias is associated with. This can either be a primary or secondary domain name within a customer.
 - `verified` (Boolean) Indicates the verification state of a domain alias.
-
-

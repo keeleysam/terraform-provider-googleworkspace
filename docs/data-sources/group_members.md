@@ -54,5 +54,3 @@ Read-Only:
 - `role` (String)
 - `status` (String)
 - `type` (String)
-
-

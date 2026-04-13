@@ -97,5 +97,3 @@ Required:
 
 - `additional_target_key_names` (Map of String) Map of additional target keys. The target app must be supplied here.
 - `target_resource` (String) The target resource on which this policy is applied (e.g., 'orgunits/123').
-
-

@@ -59,5 +59,3 @@ Read-Only:
 
 - `max_value` (Number)
 - `min_value` (Number)
-
-

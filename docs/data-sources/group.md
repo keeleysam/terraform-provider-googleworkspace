@@ -40,5 +40,3 @@ output "group_name" {
 - `name` (String) The group's display name.
 - `non_editable_aliases` (List of String) asps.list of the group's non-editable alias email addresses that are outside of the account's primary domain or subdomains. These are functioning email addresses used by the group.
 - `security_group` (Boolean) If true, adds the cloudidentity.googleapis.com/groups.security label to the group via the Cloud Identity API. This is an immutable change - once added, the security label cannot be removed. Requires the cloud-identity.groups OAuth scope.
-
-

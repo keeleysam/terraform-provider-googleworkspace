@@ -93,6 +93,8 @@ resource "googleworkspace_role_assignment" "org-unit-scope" {
 
 Import is supported using the following syntax:
 
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
 ```shell
 terraform import googleworkspace_role_assignment.dwight 12345678901234567
 ```

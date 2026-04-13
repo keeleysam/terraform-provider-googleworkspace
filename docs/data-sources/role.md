@@ -45,5 +45,3 @@ Read-Only:
 
 - `privilege_name` (String)
 - `service_id` (String)
-
-

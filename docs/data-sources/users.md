@@ -260,5 +260,3 @@ Read-Only:
 - `primary` (Boolean)
 - `type` (String)
 - `value` (String)
-
-

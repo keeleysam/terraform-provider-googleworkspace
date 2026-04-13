@@ -49,5 +49,3 @@ Read-Only:
 - `org_unit_path` (String)
 - `parent_org_unit_id` (String)
 - `parent_org_unit_path` (String)
-
-

@@ -44,5 +44,3 @@ Read-Only:
 - `name` (String)
 - `non_editable_aliases` (List of String)
 - `security_group` (Boolean)
-
-
