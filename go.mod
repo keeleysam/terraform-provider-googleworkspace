@@ -2,6 +2,8 @@ module github.com/hashicorp/terraform-provider-googleworkspace
 
 go 1.25.0
 
+toolchain go1.26.2
+
 require (
 	github.com/hashicorp/errwrap v1.1.0
 	github.com/hashicorp/go-cleanhttp v0.5.2
