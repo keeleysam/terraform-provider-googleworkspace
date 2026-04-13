@@ -2,7 +2,6 @@ package googleworkspace
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -83,155 +82,61 @@ func resourceChromeGroupPolicy() *schema.Resource {
 }
 
 func resourceChromeGroupPolicyCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*apiClient)
+	return chromePolicyCreateCommon(ctx, d, meta, targetGroup, groupBatchModify, resourceChromeGroupPolicyRead)
+}
 
-	chromePolicyService, diags := client.NewChromePolicyService()
-	if diags.HasError() {
-		return diags
-	}
-
-	chromePoliciesService, diags := GetChromePoliciesService(chromePolicyService)
-	if diags.HasError() {
-		return diags
-	}
-
-	targetID := d.Get("group_id").(string)
-
-	log.Printf("[DEBUG] Creating Chrome Policy for groups:%s", targetID)
-
-	policyTargetKey := &chromepolicy.GoogleChromePolicyVersionsV1PolicyTargetKey{
-		TargetResource: "groups/" + targetID,
-	}
-
-	if _, ok := d.GetOk("additional_target_keys"); ok {
-		policyTargetKey.AdditionalTargetKeys = expandChromePoliciesAdditionalTargetKeys(d.Get("additional_target_keys").([]interface{}))
-	}
-
-	diags = validateChromePolicies(ctx, d, client)
-	if diags.HasError() {
-		return diags
-	}
-
-	policies, diags := expandChromePoliciesValues(d.Get("policies").([]interface{}))
-	if diags.HasError() {
-		return diags
-	}
-
-	log.Printf("[DEBUG] Expanded policies: %+v", policies)
-
-	// Check if we have additional_target_keys
-	additionalTargetKeysRaw, hasAdditionalKeys := d.GetOk("additional_target_keys")
-
-	if !hasAdditionalKeys {
-		// No additional_target_keys: make individual call for each policy
-		log.Printf("[DEBUG] No additional_target_keys - processing policies individually")
-		for _, p := range policies {
-			policyTargetKey := &chromepolicy.GoogleChromePolicyVersionsV1PolicyTargetKey{
-				TargetResource: "groups/" + targetID,
-			}
-
-			var keys []string
-			var schemaValues map[string]interface{}
-			if err := json.Unmarshal(p.Value, &schemaValues); err != nil {
-				return diag.FromErr(err)
-			}
-			for key := range schemaValues {
-				keys = append(keys, key)
-			}
-
-			req := &chromepolicy.GoogleChromePolicyVersionsV1ModifyGroupPolicyRequest{
-				PolicyTargetKey: policyTargetKey,
+// groupBatchModify builds ModifyGroupPolicyRequests and calls Groups.BatchModify.
+// Without additional_target_keys, policies are sent one at a time (API workaround).
+// With additional_target_keys, all policies for a given key are batched together.
+func groupBatchModify(
+	ctx context.Context,
+	chromePoliciesService *chromepolicy.CustomersPoliciesService,
+	customer string,
+	targetKey *chromepolicy.GoogleChromePolicyVersionsV1PolicyTargetKey,
+	policies []*chromepolicy.GoogleChromePolicyVersionsV1PolicyValue,
+	updateMasks []string,
+) error {
+	// When additional_target_keys are present (indicated by non-nil map), batch all
+	// together. Otherwise send one policy per call as a workaround for the Groups API.
+	if targetKey.AdditionalTargetKeys != nil {
+		var requests []*chromepolicy.GoogleChromePolicyVersionsV1ModifyGroupPolicyRequest
+		for i, p := range policies {
+			requests = append(requests, &chromepolicy.GoogleChromePolicyVersionsV1ModifyGroupPolicyRequest{
+				PolicyTargetKey: targetKey,
 				PolicyValue:     p,
-				UpdateMask:      strings.Join(keys, ","),
-			}
-
-			batchReq := &chromepolicy.GoogleChromePolicyVersionsV1BatchModifyGroupPoliciesRequest{
-				Requests: []*chromepolicy.GoogleChromePolicyVersionsV1ModifyGroupPolicyRequest{req},
-			}
-
-			err := retryTimeDuration(ctx, chromePolicyRetryDuration, func() error {
-				_, retryErr := chromePoliciesService.Groups.BatchModify(fmt.Sprintf("customers/%s", client.Customer), batchReq).Do()
-				return retryErr
-			})
-
-			if err != nil {
-				return diag.FromErr(err)
-			}
-		}
-	} else {
-		// Have additional_target_keys: group by target_key
-		additionalTargetKeysList := additionalTargetKeysRaw.([]interface{})
-
-		// Group additional_target_keys by their target_key
-		keyGroups := make(map[string][]map[string]string)
-		for _, k := range additionalTargetKeysList {
-			targetKeyDef := k.(map[string]interface{})
-			targetKeyName := targetKeyDef["target_key"].(string)
-			targetKeyValue := targetKeyDef["target_value"].(string)
-
-			keyGroups[targetKeyName] = append(keyGroups[targetKeyName], map[string]string{
-				"key":   targetKeyName,
-				"value": targetKeyValue,
+				UpdateMask:      updateMasks[i],
 			})
 		}
-
-		log.Printf("[DEBUG] Grouped additional_target_keys by target_key: %d groups", len(keyGroups))
-
-		// Process each group of target_keys
-		for targetKeyName, keyValuePairs := range keyGroups {
-			log.Printf("[DEBUG] Processing target_key group: %s with %d values", targetKeyName, len(keyValuePairs))
-
-			// For each value in this target_key group, create requests for all policies
-			for _, keyValuePair := range keyValuePairs {
-				policyTargetKey := &chromepolicy.GoogleChromePolicyVersionsV1PolicyTargetKey{
-					TargetResource: "groups/" + targetID,
-					AdditionalTargetKeys: map[string]string{
-						keyValuePair["key"]: keyValuePair["value"],
-					},
-				}
-
-				var requests []*chromepolicy.GoogleChromePolicyVersionsV1ModifyGroupPolicyRequest
-				for _, p := range policies {
-					var keys []string
-					var schemaValues map[string]interface{}
-					if err := json.Unmarshal(p.Value, &schemaValues); err != nil {
-						return diag.FromErr(err)
-					}
-					for key := range schemaValues {
-						keys = append(keys, key)
-					}
-
-					req := &chromepolicy.GoogleChromePolicyVersionsV1ModifyGroupPolicyRequest{
-						PolicyTargetKey: policyTargetKey,
-						PolicyValue:     p,
-						UpdateMask:      strings.Join(keys, ","),
-					}
-					requests = append(requests, req)
-				}
-
-				// Batch all policies for this specific additional_target_key value
-				batchReq := &chromepolicy.GoogleChromePolicyVersionsV1BatchModifyGroupPoliciesRequest{
-					Requests: requests,
-				}
-
-				log.Printf("[DEBUG] Batching %d policies for %s=%s", len(requests), keyValuePair["key"], keyValuePair["value"])
-
-				err := retryTimeDuration(ctx, chromePolicyRetryDuration, func() error {
-					_, retryErr := chromePoliciesService.Groups.BatchModify(fmt.Sprintf("customers/%s", client.Customer), batchReq).Do()
-					return retryErr
-				})
-
-				if err != nil {
-					return diag.FromErr(err)
-				}
-			}
-		}
+		return retryTimeDuration(ctx, chromePolicyRetryDuration, func() error {
+			_, retryErr := chromePoliciesService.Groups.BatchModify(
+				fmt.Sprintf("customers/%s", customer),
+				&chromepolicy.GoogleChromePolicyVersionsV1BatchModifyGroupPoliciesRequest{Requests: requests},
+			).Do()
+			return retryErr
+		})
 	}
 
-	log.Printf("[DEBUG] Finished creating Chrome Policy for groups:%s", targetID)
-	d.SetId(targetID)
-
-	return resourceChromeGroupPolicyRead(ctx, d, meta)
+	// No additional keys: send one policy per call.
+	for i, p := range policies {
+		req := &chromepolicy.GoogleChromePolicyVersionsV1ModifyGroupPolicyRequest{
+			PolicyTargetKey: targetKey,
+			PolicyValue:     p,
+			UpdateMask:      updateMasks[i],
+		}
+		err := retryTimeDuration(ctx, chromePolicyRetryDuration, func() error {
+			_, retryErr := chromePoliciesService.Groups.BatchModify(
+				fmt.Sprintf("customers/%s", customer),
+				&chromepolicy.GoogleChromePolicyVersionsV1BatchModifyGroupPoliciesRequest{
+					Requests: []*chromepolicy.GoogleChromePolicyVersionsV1ModifyGroupPolicyRequest{req},
+				},
+			).Do()
+			return retryErr
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func resourceChromeGroupPolicyUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -371,18 +276,7 @@ func deleteChromePoliciesFromGroup(
 		}
 	} else {
 		// Have additional_target_keys: group by target_key.
-		additionalTargetKeysList := additionalTargetKeysRaw.([]interface{})
-
-		keyGroups := make(map[string][]map[string]string)
-		for _, k := range additionalTargetKeysList {
-			targetKeyDef := k.(map[string]interface{})
-			targetKeyName := targetKeyDef["target_key"].(string)
-			targetKeyValue := targetKeyDef["target_value"].(string)
-			keyGroups[targetKeyName] = append(keyGroups[targetKeyName], map[string]string{
-				"key":   targetKeyName,
-				"value": targetKeyValue,
-			})
-		}
+		keyGroups := groupAdditionalTargetKeys(additionalTargetKeysRaw.([]interface{}))
 
 		log.Printf("[DEBUG] Grouped additional_target_keys into %d groups", len(keyGroups))
 
